@@ -9,7 +9,7 @@ use std::hash::{Hash, Hasher};
 use std::pin::Pin;
 use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Mint API client that will try to run queries against all `members` expecting equal
 /// results from at least `min_eq_results` of them. Members that return differing results are
 /// returned as a member faults list.
@@ -71,6 +71,7 @@ impl MintApi {
 
     /// Submit a transaction to all federtion members
     pub async fn submit_transaction(&self, tx: Transaction) -> Result<TransactionId> {
+        // TODO: check the id is correct
         self.put("/transaction", tx).await
     }
 

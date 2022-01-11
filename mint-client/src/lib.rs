@@ -1,4 +1,5 @@
 mod api;
+mod ln;
 
 use crate::api::ApiError;
 use bitcoin::{Address, Script, Transaction};
@@ -39,6 +40,8 @@ pub struct MintClient {
     db: Arc<dyn RawDatabase>,
     api: api::MintApi, // TODO: fin way to mock out for testability
     secp: Secp256k1<All>,
+    #[allow(dead_code)]
+    ln: ln::LnClient,
 }
 
 /// Client side representation of one coin in an issuance request that keeps all necessary
@@ -114,7 +117,20 @@ impl MintClient {
                 .collect(),
         );
 
-        MintClient { cfg, db, api, secp }
+        let ln = ln::LnClient {
+            db: db.clone(),
+            cfg: cfg.ln.clone(),
+            api: api.clone(),
+            secp: secp.clone(),
+        };
+
+        MintClient {
+            cfg,
+            db,
+            api,
+            secp,
+            ln,
+        }
     }
 
     pub async fn peg_in<R: RngCore + CryptoRng>(
