@@ -7,16 +7,17 @@ use minimint_api::Amount;
 #[derive(Debug, Encodable, Decodable)]
 pub struct OutgoingContractData {
     pub recovery_key: secp256k1_zkp::schnorrsig::KeyPair,
-    pub contract: OutgoingContract,
+    pub contract_account: OutgoingContractAccount,
 }
 
+#[derive(Debug, Encodable, Decodable)]
 pub struct OutgoingContractAccount {
     pub amount: Amount,
     pub contract: OutgoingContract,
 }
 
-#[allow(dead_code)]
 impl OutgoingContractAccount {
+    #[allow(dead_code)]
     pub fn claim(&self, preimage: [u8; 32]) -> ContractInput {
         ContractInput {
             crontract_id: self.contract.contract_id(),

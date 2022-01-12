@@ -13,7 +13,9 @@ use minimint::modules::ln::contracts::outgoing::OutgoingContract;
 use minimint::modules::ln::contracts::{
     Contract, ContractId, FundedContract, IdentifyableContract,
 };
-use minimint::modules::ln::{ContractAccount, ContractOrOfferOutput, ContractOutput};
+use minimint::modules::ln::{
+    ContractAccount, ContractInput, ContractOrOfferOutput, ContractOutput,
+};
 use minimint_api::db::batch::BatchTx;
 use minimint_api::db::RawDatabase;
 use minimint_api::Amount;
@@ -62,7 +64,10 @@ impl LnClient {
 
         let outgoing_payment = OutgoingContractData {
             recovery_key: user_sk,
-            contract: contract.clone(),
+            contract_account: OutgoingContractAccount {
+                amount: contract_amount,
+                contract: contract.clone(),
+            },
         };
 
         batch.append_insert_new(OutgoingPaymentKey(contract.contract_id()), outgoing_payment);
@@ -89,6 +94,16 @@ impl LnClient {
             }),
             _ => Err(LnClientError::WrongAccountType),
         }
+    }
+
+    pub fn refund_outgoing_contract<'a>(
+        &self,
+        contract_data: &'a OutgoingContractData,
+    ) -> (&'a secp256k1_zkp::schnorrsig::KeyPair, ContractInput) {
+        (
+            &contract_data.recovery_key,
+            contract_data.contract_account.refund(),
+        )
     }
 }
 
