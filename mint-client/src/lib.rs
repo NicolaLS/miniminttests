@@ -7,6 +7,7 @@ use secp256k1_zkp::{All, Secp256k1};
 use thiserror::Error;
 
 use minimint::config::ClientConfig;
+use minimint::modules::ln::contracts::ContractId;
 use minimint::modules::mint::tiered::coins::Coins;
 use minimint::modules::wallet::txoproof::{PegInProofError, TxOutProof};
 use minimint::transaction as mint_tx;
@@ -282,6 +283,50 @@ impl MintClient {
 
         let signature =
             minimint::transaction::agg_sign(&coin_keys, txid.as_hash(), &self.secp, &mut rng);
+
+        let transaction = mint_tx::Transaction {
+            inputs,
+            outputs,
+            signature: Some(signature),
+        };
+
+        let mint_tx_id = self.api.submit_transaction(transaction).await?;
+        // TODO: make check part of submit_transaction
+        assert_eq!(
+            txid, mint_tx_id,
+            "Federation is faulty, returned wrong tx id."
+        );
+
+        self.db.apply_batch(batch).expect("DB error");
+        Ok(txid)
+    }
+
+    pub async fn claim_outgoing_ln_contract<R: RngCore + CryptoRng>(
+        &self,
+        contract: ContractId,
+        preimage: [u8; 32],
+        gw_key: secp256k1_zkp::schnorrsig::KeyPair,
+        mut rng: R,
+    ) -> Result<TransactionId, ClientError> {
+        let mut batch = DbBatch::new();
+
+        let account = self.ln.get_outgoing_contract(contract).await?;
+        let ln_input = account.claim(preimage);
+        let (coin_finalization_data, coin_output) =
+            self.mint.create_coin_output(account.amount, &mut rng);
+
+        let inputs = vec![mint_tx::Input::LN(ln_input)];
+        let outputs = vec![mint_tx::Output::Mint(coin_output)];
+        let txid = mint_tx::Transaction::tx_hash_from_parts(&inputs, &outputs);
+
+        self.mint.save_coin_finalization_data(
+            batch.transaction(),
+            OutPoint { txid, out_idx: 0 },
+            coin_finalization_data,
+        );
+
+        let signature =
+            minimint::transaction::agg_sign(&[gw_key], txid.as_hash(), &self.secp, &mut rng);
 
         let transaction = mint_tx::Transaction {
             inputs,
