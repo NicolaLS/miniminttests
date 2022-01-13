@@ -2,7 +2,7 @@ mod db;
 mod gateway;
 mod outgoing;
 
-use crate::api::MintApi;
+use crate::api::FederationApi;
 use crate::ln::db::OutgoingPaymentKey;
 use crate::ln::gateway::LightningGateway;
 use crate::ln::outgoing::{OutgoingContractAccount, OutgoingContractData};
@@ -26,7 +26,7 @@ use thiserror::Error;
 pub struct LnClient {
     pub db: Arc<dyn RawDatabase>,
     pub cfg: ln::config::LightningModuleClientConfig,
-    pub api: MintApi,
+    pub api: FederationApi,
     pub secp: secp256k1_zkp::Secp256k1<secp256k1_zkp::All>,
 }
 
