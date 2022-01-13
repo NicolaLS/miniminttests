@@ -1,5 +1,5 @@
 mod db;
-mod gateway;
+pub mod gateway;
 mod outgoing;
 
 use crate::api::FederationApi;
