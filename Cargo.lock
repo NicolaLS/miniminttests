@@ -1836,6 +1836,7 @@ dependencies = [
  "reqwest",
  "secp256k1-zkp",
  "serde",
+ "serde_json",
  "sha3",
  "sled",
  "structopt",
