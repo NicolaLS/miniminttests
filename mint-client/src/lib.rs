@@ -17,7 +17,7 @@ use minimint_api::{Amount, TransactionId};
 use minimint_api::{OutPoint, PeerId};
 
 use crate::api::{ApiError, FederationApi};
-use crate::mint::{MintClientError, SpendableCoin};
+use crate::mint::{CoinFinalizationData, MintClientError, SpendableCoin};
 use crate::wallet::WalletClientError;
 
 mod api;
@@ -284,7 +284,12 @@ impl MintClient {
             }
         }
         Ok(status)
+    }
 
+    pub fn fetch_active_issuances(&self) -> Vec<CoinFinalizationData>{
+        let (_keys, coins) : (Vec<_>, Vec<CoinFinalizationData>) = self
+            .mint.get_active_issuances().iter().cloned().unzip();
+        coins
     }
 }
 
