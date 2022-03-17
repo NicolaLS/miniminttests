@@ -295,6 +295,7 @@ impl MintClient {
 }
 
 // -> clientd
+/// Holds all possible Responses of the RPC-CLient
 #[derive(Serialize, Deserialize)]
 pub enum ResBody {
     Info {
@@ -330,7 +331,7 @@ impl ResBody {
         let info_coins : Vec<CoinsByTier> = coins.coins.iter()
               .map(|(tier, c)| CoinsByTier { quantity : c.len(), tier : tier.milli_sat})
               .collect();
-          ResBody::Info { coins : info_coins, pending : Box::new(ResBody::Empty)}
+          ResBody::Info { coins : info_coins, pending : Box::new(ResBody::build_pending(cfd))}
     }
 
     pub fn build_pending(all_pending : Vec<CoinFinalizationData>) -> Self {
@@ -347,6 +348,7 @@ impl ResBody {
         ResBody::Reissue {out_point, status}
     }
 }
+//TODO: implement Disply trait for ResBody/CoinsByTier (for client-cli)
 
 pub fn serialize_coins(c: &Coins<SpendableCoin>) -> String {
     let bytes = bincode::serialize(&c).unwrap();
