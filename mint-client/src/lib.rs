@@ -315,6 +315,9 @@ pub enum ResBody {
         out_point : OutPoint,
         status : TransactionStatus,
     },
+    EventDump {
+        events : Vec<ResBody>,
+    },
     Error {
         err : String,
     },
