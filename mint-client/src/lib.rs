@@ -298,7 +298,7 @@ impl MintClient {
 /// Holds all possible Responses of the RPC-CLient can also be used to parse responses (for client-cli)
 #[derive(Serialize, Deserialize, Clone)]
 pub enum ResBody {
-    ///The clients holdings : The quantity of coins for each tier. For total holdings sum(Info[i].quantity * Info[i].tier)
+    ///The clients holdings : The quantity of coins for each tier. For total holdings sum(Infoi.quantity * Infoi.tier) with i = 0 - n
     /// Also contains the [`ResBody::Pending`] variant.
     Info {
         coins : Vec<CoinsByTier>,
