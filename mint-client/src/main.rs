@@ -6,7 +6,7 @@ use minimint::modules::wallet::txoproof::TxOutProof;
 use minimint_api::encoding::Decodable;
 use minimint_api::Amount;
 use mint_client::mint::SpendableCoin;
-use mint_client::{MintClient, parse_coins, serialize_coins};
+use mint_client::{parse_coins, serialize_coins, MintClient};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::error::Error;

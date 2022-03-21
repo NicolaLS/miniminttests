@@ -239,8 +239,7 @@ impl MintClient {
     }
 
     pub fn get_active_issuances(&self) -> Vec<(OutputFinalizationKey, CoinFinalizationData)> {
-        self
-            .db
+        self.db
             .find_by_prefix::<_, OutputFinalizationKey, CoinFinalizationData>(
                 &OutputFinalizationKeyPrefix,
             )
