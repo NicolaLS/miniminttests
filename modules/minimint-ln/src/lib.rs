@@ -124,6 +124,7 @@ impl FederationModule for LightningModule {
     type TxOutput = ContractOrOfferOutput;
     type TxOutputOutcome = OutputOutcome;
     type ConsensusItem = DecryptionShareCI;
+    type VerificationCache = ();
 
     async fn consensus_proposal<'a>(
         &'a self,
@@ -181,7 +182,17 @@ impl FederationModule for LightningModule {
         batch.commit();
     }
 
-    fn validate_input<'a>(&self, input: &'a Self::TxInput) -> Result<InputMeta<'a>, Self::Error> {
+    fn build_verification_cache<'a>(
+        &'a self,
+        _inputs: impl Iterator<Item = &'a Self::TxInput>,
+    ) -> Self::VerificationCache {
+    }
+
+    fn validate_input<'a>(
+        &self,
+        input: &'a Self::TxInput,
+        _cache: &Self::VerificationCache,
+    ) -> Result<InputMeta<'a>, Self::Error> {
         let account: ContractAccount = self
             .get_contract_account(input.crontract_id)
             .ok_or(LightningModuleError::UnknownContract(input.crontract_id))?;
@@ -240,8 +251,9 @@ impl FederationModule for LightningModule {
         &'a self,
         mut batch: BatchTx<'a>,
         input: &'b Self::TxInput,
+        cache: &Self::VerificationCache,
     ) -> Result<InputMeta<'b>, Self::Error> {
-        let meta = self.validate_input(input)?;
+        let meta = self.validate_input(input, cache)?;
 
         let account_db_key = ContractKey(input.crontract_id);
         let mut contract_account = self

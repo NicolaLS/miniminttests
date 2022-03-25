@@ -56,7 +56,8 @@ where
 
     pub fn verify_input(&self, input: &M::TxInput) -> Result<TestInputMeta, M::Error> {
         let results = self.members.iter().map(|(_, member, _)| {
-            let InputMeta { amount, puk_keys } = member.validate_input(input)?;
+            let cache = member.build_verification_cache(std::iter::once(input));
+            let InputMeta { amount, puk_keys } = member.validate_input(input, &cache)?;
             Ok(TestInputMeta {
                 amount,
                 keys: puk_keys.collect(),
@@ -100,9 +101,10 @@ where
                 .begin_consensus_epoch(batch.transaction(), consensus.clone(), &mut rng)
                 .await;
 
+            let cache = member.build_verification_cache(inputs.iter());
             for input in inputs {
                 member
-                    .apply_input(batch.transaction(), input)
+                    .apply_input(batch.transaction(), input, &cache)
                     .expect("Faulty input");
             }
 
