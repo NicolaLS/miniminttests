@@ -79,7 +79,9 @@ where
         &mut self,
         inputs: &[M::TxInput],
         outputs: &[(OutPoint, M::TxOutput)],
-    ) {
+    ) where
+        <M as FederationModule>::TxInput: Send + Sync,
+    {
         let mut rng = rand::rngs::OsRng::new().unwrap();
 
         // TODO: only include some of the proposals for realism
