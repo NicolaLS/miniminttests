@@ -443,7 +443,6 @@ impl ResBody {
         ResBody::EventDump { events: e }
     }
 }
-//TODO: implement Display trait for ResBody/CoinsByTier (for client-cli)
 
 pub fn serialize_coins(c: &Coins<SpendableCoin>) -> String {
     let bytes = bincode::serialize(&c).unwrap();
