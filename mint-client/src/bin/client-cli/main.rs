@@ -1,5 +1,6 @@
+extern crate core;
 use clap::{Parser, Subcommand};
-use reqwest::{Body, Client};
+use reqwest::Client;
 use serde_json;
 use mint_client::ResBody;
 
@@ -14,14 +15,14 @@ enum Commands {
     /// Clients holdings (total, coins, pending)
     Info {
         /// Format JSON
-        #[clap(takes_value = false, short='p')]
-        pretty : bool,
+        #[clap(takes_value = false, long="raw")]
+        raw : bool,
     },
     /// Clients pending coins
     Pending {
         /// Format JSON
-        #[clap(takes_value = false, short='p')]
-        pretty : bool,
+        #[clap(takes_value = false, long="raw")]
+        raw : bool,
     },
     /// The spend subcommand allows to send tokens to another client. This will select the smallest possible set of the client's coins that represents a given amount.
     #[clap(arg_required_else_help = true)]
@@ -29,8 +30,8 @@ enum Commands {
         /// The amount of coins to be spend in msat if not set to sat
         amount : u64,
         /// Format JSON
-        #[clap(takes_value = false, short='p')]
-        pretty : bool,
+        #[clap(takes_value = false, long="raw")]
+        raw : bool,
     },
     /// Reissue coins to claim them and avoid double spends
     #[clap(arg_required_else_help = true)]
@@ -38,107 +39,70 @@ enum Commands {
         /// The base64 encoded coins
         coins : String,
         /// Format JSON
-        #[clap(takes_value = false, short='p')]
-        pretty : bool,
-        #[clap(takes_value = false, short='v')]
-        validate : bool,
+        #[clap(takes_value = false, long="raw")]
+        raw : bool,
+        #[clap(takes_value = false, long="silent")]
+        silent : bool,
     },
     Events {
-        #[clap(takes_value = false, short='p')]
-        pretty : bool,
+        #[clap(takes_value = false, long="raw")]
+        raw : bool,
     }
 }
+
 #[tokio::main]
 async fn main() {
     let args = Cli::parse();
-
-    match &args.command {
-        Commands::Info { pretty } => {
-            info(*pretty).await;
+    let (res, raw) = match &args.command {
+        Commands::Info { raw } => {
+            (call_clientd("info", "").await, raw)
         },
-        Commands::Pending {pretty} => {
-            pending(*pretty).await;
+        Commands::Pending {raw} => {
+            (call_clientd("pending", "").await, raw)
         },
-        Commands::Spend {amount, pretty} => {
-            spend(*pretty, *amount).await;
+        Commands::Spend {amount, raw} => {
+            (call_clientd("spend", amount).await, raw)
         },
-        Commands::Reissue {coins, pretty, validate} => {
-            reissue(*pretty, *validate, coins).await;
+        Commands::Reissue {coins, raw, silent} => {
+            if *silent {
+                (call_clientd("reissue", coins).await, raw)
+            } else {
+                (call_clientd("reissue_validate", coins).await, raw)
+            }
         },
-        Commands::Events { pretty} => {
-            event(*pretty).await;
+        Commands::Events { raw} => {
+            (call_clientd("events", "").await, raw)
         },
+    };
+    match res {
+        Ok(res) => print_res(res, *raw),
+        Err(_) => (),
     }
 }
 
-async fn info(p: bool) {
+async fn call_clientd<T : serde::ser::Serialize + ?Sized>(query : &str, json : &T) -> Result<ResBody, reqwest::Error>{
     let res = Client::new()
-        .post("http://127.0.0.1:8080/info") //?
+        .post(format!("{}{}", "http://127.0.0.1:8080/", query))
+        .json(json)
         .send()
-        .await.unwrap();
-    let res : ResBody = res.json().await.unwrap();
-    if p {
-        println!("{}", serde_json::to_string_pretty(&res).unwrap());
-    }else {
-        println!("{}", serde_json::to_string(&res).unwrap());
-    }
-}
-async fn pending(p: bool) {
-    let res = Client::new()
-        .post("http://127.0.0.1:8080/pending") //?
-        .send()
-        .await.unwrap();
-    let res : ResBody = res.json().await.unwrap();
-    if p {
-        println!("{}", serde_json::to_string_pretty(&res).unwrap());
-    }else {
-        println!("{}", serde_json::to_string(&res).unwrap());
-    }
+        .await?;
+    let res : ResBody = res.json().await?;
+    Ok(res)
 }
 
-async fn spend(p: bool, coins: u64) {
-    let res = Client::new()
-        .post("http://127.0.0.1:8080/spend")
-        .json(&coins)
-        .send()
-        .await.unwrap();
-    let res : ResBody = res.json().await.unwrap();
-    if p {
-        println!("{}", serde_json::to_string_pretty(&res).unwrap());
-    }else {
+fn print_res(res : ResBody, raw : bool) {
+    if raw {
+        //print raw json-string
+        //unwrap is ok, since ResBody is always a valid data structure
         println!("{}", serde_json::to_string(&res).unwrap());
-    }
-}
-
-async fn reissue(p: bool, v: bool, coins : &String){
-    let url = if v { "http://127.0.0.1:8080/reissue_validate"} else { "http://127.0.0.1:8080/reissue" };
-    let res = Client::new()
-        .post(url)
-        .json(&coins)
-        .send()
-        .await.unwrap();
-    let res : ResBody = res.json().await.unwrap();
-    if p {
+    } else {
+        //print pretty json-string
+        //unwrap is ok, since ResBody is always a valid data structure
         println!("{}", serde_json::to_string_pretty(&res).unwrap());
-    }else {
-        println!("{}", serde_json::to_string(&res).unwrap());
-    }
-}
-
-async fn event(p: bool) {
-    let res = Client::new()
-        .post("http://127.0.0.1:8080/events")
-        .send()
-        .await.unwrap();
-    let res : ResBody = res.json().await.unwrap();
-    if p {
-        println!("{}", serde_json::to_string_pretty(&res).unwrap());
-    }else {
-        println!("{}", serde_json::to_string(&res).unwrap());
     }
 }
 
 // Good Error Handling
-// Where to store config like host:port
-// Format the json properly and not just puke it to stdout
-//instead of -p for pretty do --raw for unpretty so pretty is standard
+//whats ?Trait
+//why use dyn instead of traitbounds (rust book)
+// tf is this : impl<T> const From<!> for T
