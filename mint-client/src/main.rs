@@ -76,9 +76,10 @@ async fn main() {
         .init();
 
     let opts: Options = StructOpt::from_args();
-    let cfg_path = opts.workdir.join("client.json");
+    let federation_client_cfg_path = opts.workdir.join("federation_client.json");
     let db_path = opts.workdir.join("client.db");
-    let cfg: ClientAndGatewayConfig = load_from_file(&cfg_path);
+    let federation_client_cfg: minimint::config::ClientConfig =
+        load_from_file(&federation_client_cfg_path);
     let db = sled::open(&db_path)
         .unwrap()
         .open_tree("mint-client")
@@ -86,7 +87,7 @@ async fn main() {
 
     let mut rng = rand::rngs::OsRng::new().unwrap();
 
-    let client = UserClient::new(cfg.client, Box::new(db), Default::default());
+    let client = UserClient::new(federation_client_cfg, Box::new(db), Default::default());
 
     match opts.command {
         Command::PegInAddress => {
@@ -140,7 +141,7 @@ async fn main() {
             client.peg_out(amount, address, &mut rng).await.unwrap();
         }
         Command::LnPay { bolt11 } => {
-            let http = reqwest::Client::new();
+          /*  let http = reqwest::Client::new();
 
             let contract_id = client
                 .fund_outgoing_ln_contract(&cfg.gateway, bolt11, &mut rng)
@@ -162,7 +163,7 @@ async fn main() {
                 .timeout(Duration::from_secs(15))
                 .send()
                 .await
-                .unwrap();
+                .unwrap();*/
         }
     }
 }
