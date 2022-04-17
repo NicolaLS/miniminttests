@@ -104,11 +104,21 @@ RPC="http://127.0.0.1:8081/rpc"
 #JSON-RPC Specification
 #TODO: Notification: no ID means the client does not want any response (reissue for example)
 #rpc call of non-existent method:
+RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","doesnotexist": "info","params": null,"id": 1}');
+RES_ERROR= $RES | jq '.error' #should contain an rpc error -32601
+RES_RES= $RES | jq '.result' #should be null
+echo $RES_ERROR;
+echo $RES_RES;
 #rpc call with invalid JSON:
+RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","info": "info","params": null,"id": 1'); # the '}' is missing
+RES_ERROR= $RES | jq '.error'; #should contain an rpc error -32700
+RES_RES= $RES | jq '.result'; #should be null
+echo $RES_ERROR;
+echo $RES_RES;
 #TODO: rpc call Batch, invalid JSON:
 #TODO: rpc call with invalid Batch:
 #TODO: rpc call Batch
-#Requests: all methods
+#Requests: all methods (also add option to use positional (array) params ?)
 # method: info
 #RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "info","params": null,"id": 1}')
 #TODO check if response is ok
