@@ -97,42 +97,6 @@ await_block_sync
 # Start LN gateway
 $BIN_DIR/ln_gateway $CFG_DIR &
 
-#### BEGIN TESTS ####
-# peg in
-PEG_IN_ADDR="$($MINT_CLIENT peg-in-address)"
-TX_ID="$($BTC_CLIENT sendtoaddress $PEG_IN_ADDR 0.00099999)"
-
-# Confirm peg-in
-mine_blocks 11
-await_block_sync
-TXOUT_PROOF="$($BTC_CLIENT gettxoutproof "[\"$TX_ID\"]")"
-TRANSACTION="$($BTC_CLIENT getrawtransaction $TX_ID)"
-$MINT_CLIENT peg-in "$TXOUT_PROOF" "$TRANSACTION"
-$MINT_CLIENT fetch
-
-# reissue
-TOKENS=$($MINT_CLIENT spend 42000)
-$MINT_CLIENT reissue $TOKENS
-$MINT_CLIENT fetch
-
-# peg out
-PEG_OUT_ADDR="$($BTC_CLIENT getnewaddress)"
-$MINT_CLIENT peg-out $PEG_OUT_ADDR "500 sat"
-sleep 5 # wait for tx to be included
-mine_blocks 120
-await_block_sync
-sleep 15
-mine_blocks 10
-RECEIVED=$($BTC_CLIENT getreceivedbyaddress $PEG_OUT_ADDR)
-[[ "$RECEIVED" = "0.00000500" ]]
-
-# outgoing lightning
-INVOICE="$($LN2 invoice 100000 test test 1m | jq -r '.bolt11')"
-$MINT_CLIENT ln-pay $INVOICE
-INVOICE_RESULT="$($LN2 waitinvoice test)"
-INVOICE_STATUS="$(echo $INVOICE_RESULT | jq -r '.status')"
-[[ "$INVOICE_STATUS" = "paid" ]]
-
 #CLIENTD
 #stard clientd
 $BIN_DIR/clientd $CFG_DIR &
@@ -146,46 +110,46 @@ RPC="http://127.0.0.1:8081/rpc"
 #TODO: rpc call Batch
 #Requests: all methods
 # method: info
-RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "info","params": null,"id": 1}')
+#RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "info","params": null,"id": 1}')
 #TODO check if response is ok
 # method: pending
-RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "pending","params": null,"id": 1}')
+#RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "pending","params": null,"id": 1}')
 #TODO check if response is ok
 # method: events
-RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "events","params": null,"id": 1}')
+#RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "events","params": null,"id": 1}')
 #TODO check if response is ok
 # method: pegin_address
-RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "pegin_address","params": null,"id": 1}')
+#RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "pegin_address","params": null,"id": 1}')
 #TODO check if response is ok
 # method: pegin
-PEG_IN_ADDR="$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "pegin_address","params": null,"id": 1}' | jq -r '.result.PegInAddress.pegin_address')"
-TX_ID="$($BTC_CLIENT sendtoaddress $PEG_IN_ADDR 0.00099999)"
+#PEG_IN_ADDR="$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "pegin_address","params": null,"id": 1}' | jq -r '.result.PegInAddress.pegin_address')"
+#TX_ID="$($BTC_CLIENT sendtoaddress $PEG_IN_ADDR 0.00099999)"
 # Confirm peg-in
-mine_blocks 11
-await_block_sync
-TXOUT_PROOF="$($BTC_CLIENT gettxoutproof "[\"$TX_ID\"]")"
-TRANSACTION="$($BTC_CLIENT getrawtransaction $TX_ID)"
-RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method": "pegin","params": {"txout_proof":'\""$TXOUT_PROOF"\"',"transaction":'\""$TRANSACTION"\"'},"id": 1}')
+#mine_blocks 11
+#await_block_sync
+#TXOUT_PROOF="$($BTC_CLIENT gettxoutproof "[\"$TX_ID\"]")"
+#TRANSACTION="$($BTC_CLIENT getrawtransaction $TX_ID)"
+#RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method": "pegin","params": {"txout_proof":'\""$TXOUT_PROOF"\"',"transaction":'\""$TRANSACTION"\"'},"id": 1}')
 #TODO check if response is ok
 # method: spend, reissue_validate
-SPEND_RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method": "spend","params": 42000,"id": 1}' | jq '.result.Spend.token')
-REISSUE_RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "reissue_validate","params": '"$TOKENS"',"id": 1}')
+#SPEND_RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method": "spend","params": 42000,"id": 1}' | jq '.result.Spend.token')
+#REISSUE_RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "reissue_validate","params": '"$TOKENS"',"id": 1}')
 #TODO check if response is ok
 # method: pegout
-PEG_OUT_ADDR="$($BTC_CLIENT getnewaddress)"
-RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "pegout","params": {"address": '\""$PEG_OUT_ADDR"\"',"amount": 500},"id": 1}')
-sleep 5 # wait for tx to be included
-mine_blocks 120
-await_block_sync
-sleep 15
-mine_blocks 10
-RECEIVED=$($BTC_CLIENT getreceivedbyaddress $PEG_OUT_ADDR)
-[[ "$RECEIVED" = "0.00000500" ]]
+#PEG_OUT_ADDR="$($BTC_CLIENT getnewaddress)"
+#RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method": "pegout","params": {"address": '\""$PEG_OUT_ADDR"\"',"amount": 500},"id": 1}')
+#sleep 5 # wait for tx to be included
+#mine_blocks 120
+#await_block_sync
+#sleep 15
+#mine_blocks 10
+#RECEIVED=$($BTC_CLIENT getreceivedbyaddress $PEG_OUT_ADDR)
+#[[ "$RECEIVED" = "0.00000500" ]]
 # method: lnpay
-INVOICE="$(lightning-cli --network regtest --lightning-dir=ln2 invoice 100000 test test 10m | jq '.bolt11')"
-RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method": "lnpay","params": {"bolt11":'"$INVOICE"'},"id": 1}')
-INVOICE_RESULT="$(lightning-cli --network regtest --lightning-dir=ln2 waitinvoice test)"
-echo $INVOICE_RESULT;
-INVOICE_STATUS="$(echo $INVOICE_RESULT | jq -r '.status')"
-echo $INVOICE_STATUS;
-[[ "$INVOICE_STATUS" = "paid" ]]
+#INVOICE="$(lightning-cli --network regtest --lightning-dir=ln2 invoice 100000 test test 10m | jq '.bolt11')"
+#RES=$(curl -X POST $RPC -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method": "lnpay","params": {"bolt11":'"$INVOICE"'},"id": 1}')
+#INVOICE_RESULT="$(lightning-cli --network regtest --lightning-dir=ln2 waitinvoice test)"
+#echo $INVOICE_RESULT;
+#INVOICE_STATUS="$(echo $INVOICE_RESULT | jq -r '.status')"
+#echo $INVOICE_STATUS;
+#[[ "$INVOICE_STATUS" = "paid" ]]
